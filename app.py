@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, jsonify, Response, send_file
-from argparse import ArgumentParser
+from werkzeug.utils import secure_filename
+from processor import convert_to_wav, process_audio, compute_dist
 from collections import namedtuple
-from contextlib import closing
 import os
 import sys
 
@@ -34,12 +34,14 @@ HTTP_STATUS = {"OK": ResponseStatus(code=200, message="OK"),
                "NOT_FOUND": ResponseStatus(code=404, message="Not found"),
                "INTERNAL_SERVER_ERROR": ResponseStatus(code=500, message="Internal server error")}
 
+
 # Create a client using the credentials and region defined in the adminuser
 # section of the AWS credentials and configuration files
 session = Session(profile_name="default")
 polly = session.client("polly")
 
 app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = "uploads/"
 
 class InvalidUsage(Exception):
     status_code = 400
@@ -81,19 +83,19 @@ def voices():
         except (BotoCoreError, ClientError) as err:
             # The service returned an error
             raise InvalidUsage(str(err), status_code=500)
-        
+
         # Collect all the voices
         voices.extend(response.get("Voices", []))
-        
+
         # If a continuation token was returned continue, stop iterating
         # otherwise
         if "NextToken" in response:
             params = {"NextToken": response["NextToken"]}
         else:
             break
-        
+
     return jsonify(voices)
-    
+
 @app.route('/read', methods=['GET'])
 def read():
     """Handles routing for reading text (speech synthesis)"""
@@ -120,11 +122,58 @@ def read():
             except (BotoCoreError, ClientError) as err:
                 # The service returned an error
                 raise InvalidUsage(str(err), status_code=500)
-            
+
             return send_file(response.get("AudioStream"),AUDIO_FORMATS[outputFormat])
     except:
         raise InvalidUsage("Wrong parameters", status_code=400)
-    
+
+@app.route('/test', methods=['GET'])
+def upload():
+    return render_template('upload.html')
+
+
+@app.route('/test/<string:text>', methods=['POST'])
+def compare(text):
+    file = request.files['file']
+    if file:
+        filename = secure_filename(file.filename)
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(file_path)
+        new_path = convert_to_wav(file_path)
+        y, sr = process_audio(new_path)
+        time_difference, dtw_dist = compute_dist(y,sr)
+        return jsonify(time_difference=time_difference, dtw_dist=dtw_dist)
+
+    # """Handles routing for reading text (speech synthesis)"""
+    # # Get the parameters from the query string
+    # try:
+    #     text = request.args.get('text')
+    #     voiceId = request.args.get('voiceId')
+    #     outputFormat = request.args.get('outputFormat')
+    # except TypeError:
+    #     raise InvalidUsage("Wrong parameters", status_code=400)
+    #
+    # # Validate the parameters, set error flag in case of unexpected
+    # # values
+    # try:
+    #     if len(text) == 0 or len(voiceId) == 0 or \
+    #             outputFormat not in AUDIO_FORMATS:
+    #         raise InvalidUsage("Wrong parameters", status_code=400)
+    #     else:
+    #         try:
+    #             # Request speech synthesis
+    #             response = polly.synthesize_speech(Text=text,
+    #                                                 VoiceId=voiceId,
+    #                                                 OutputFormat=outputFormat)
+    #         except (BotoCoreError, ClientError) as err:
+    #             # The service returned an error
+    #             raise InvalidUsage(str(err), status_code=500)
+    #
+    #         return send_file(response.get("AudioStream"),AUDIO_FORMATS[outputFormat])
+    # except:
+    #     raise InvalidUsage("Wrong parameters", status_code=400)
+
+
 if __name__ == '__main__':
     app.secret_key = 'super_secret_key'
     app.debug = True
