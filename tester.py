@@ -1,5 +1,26 @@
-from processor import convert_ogg_to_wav, read_in_audio, filter_audio
+from processor import convert_to_wav, filter_audio, plot_spec
 
-convert_ogg_to_wav('test_file.ogg')
+convert_to_wav('english_example.mp3')
+# convert_to_wav('bad_example.mp3')
+#
+filter_audio('Test.wav', write_wav = True)
+filter_audio('model.wav', write_wav = True)
+filter_audio('russian_example.wav', write_wav = True)
+filter_audio('english_example.wav', write_wav = True)
+filter_audio('good_example.wav', write_wav = True)
+filter_audio('bad_example.wav', write_wav = True)
 
-filter_audio('test_file.wav', write_wav = True)
+print('Test')
+plot_spec('Test.wav')
+print('control')
+plot_spec('model_processed.wav')
+print('model')
+plot_spec('model.wav')
+print('Russian')
+plot_spec('russian_example_processed.wav')
+print('English')
+plot_spec('english_example_processed.wav')
+print('Good')
+plot_spec('good_example_processed.wav')
+print('Bad')
+plot_spec('bad_example_processed.wav')

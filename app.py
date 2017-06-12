@@ -36,7 +36,7 @@ HTTP_STATUS = {"OK": ResponseStatus(code=200, message="OK"),
 
 # Create a client using the credentials and region defined in the adminuser
 # section of the AWS credentials and configuration files
-session = Session(profile_name="adminuser")
+session = Session(profile_name="default")
 polly = session.client("polly")
 
 app = Flask(__name__)

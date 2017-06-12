@@ -5,52 +5,110 @@ import numpy as np
 # from features import mfcc
 # from features import logfbank
 from scipy.signal import butter, lfilter
+from scipy.spatial.distance import euclidean
 # import scipy.io.wavfile as wav
 # from scipy.io.wavfile import write as wav_write
-# import librosa
+import librosa
+import librosa.display
 # import scikits.samplerate
 # import os
-import soundfile as sf
 import os
 import matplotlib.pyplot as plt
+from python_speech_features import mfcc, delta, logfbank
+from fastdtw import fastdtw
+from cydtw import dtw
+from sklearn.metrics.pairwise import euclidean_distances
 
-def convert_ogg_to_wav(file_path):
-    sig, rate = sf.read(file_path)
+def convert_to_wav(file_path):
+    y, sr = librosa.load(file_path)
     filename = os.path.splitext(file_path)[0]
-    sf.write(filename+'.wav', sig, rate)
+    librosa.output.write_wav('{}.wav'.format(filename), y, sr)
 
 # '''
 # mfcc(signal, samplerate=16000, winlen=0.025, winstep=0.01, numcep=13, nfilt=26, nfft=512, lowfreq=0, highfreq=None, preemph=0.97, ceplifter=22, appendEnergy=True)
 # '''
-# read in wav file, get out signal (np array) and sampling rate (int)
-def read_in_audio(file_path):
-    sig, rate = sf.read(file_path)
-    return sig, rate
-
 # read in signal and rate, change sample rate to outrate (samples/sec), use write_wav=True to save wav file to disk
 def filter_audio(file_path, write_wav = False):
-    sig, rate = read_in_audio(file_path)
-    b, a = butter(4, [0.25,0.8], 'bandpass')
-    output_signal = lfilter(b, a, sig)
+    y, sr = librosa.load(file_path)
+
+    # Trim silence at start and end
+    yt, index = librosa.effects.trim(y,15)
+
+    # Apply pre-emphasis filter_audio
+    # pre_emphasis = 0.97
+    # ye = np.append(yt[0], yt[1:] - pre_emphasis * yt[:-1])
+
+    # Apply butterworth bandpass filter
+    b, a = butter(4, [0.05,0.8], 'bandpass')
+    yf = lfilter(b, a, yt)
+
+
     if write_wav:
         filename = os.path.splitext(file_path)[0]
-        sf.write('{}_down.wav'.format(filename), output_signal, rate)
+        librosa.output.write_wav('{}_processed.wav'.format(filename), yt, sr)
     else:
-        return output_signal, rate
-        
+        return yt, r
+
 def plot_spec(file_path):
-    sig, rate = read_in_audio(file_path)
-    T = 0.001    # seconds
-    fs = rate   # sampling frequency
-    t = np.linspace(0, T, int(T*fs), endpoint=False) # time variable
-    x = sig
-    
-    S, freqs, bins, im = plt.specgram(x, NFFT=1024, Fs=fs, noverlap=512)
 
-    # Plot a spectrogram
-    plt.xlabel('Time')
-    plt.ylabel('Frequency')
+    #Loading audio files
+    y2, sr2 = librosa.load(file_path)   #y2 is model
+    y1, sr1 = librosa.load('model_processed.wav')
 
+    # print(y1)
+
+    # plt.figure()
+    # plt.subplot(221)
+    # plt.plot(y1)
+    # plt.subplot(223)
+    # plt.plot(y2)
+    # plt.show()
+
+    # normalize clips
+    yn1, yn2 = normalize(y1, y2)
+
+    # plt.figure()
+    # plt.subplot(221)
+    # plt.plot(yn1)
+    # plt.subplot(223)
+    # plt.plot(yn2)
+    # plt.show()
+
+    time_difference = np.absolute(librosa.get_duration(y1) - librosa.get_duration(y2))
+    print('Time difference: {}'.format(time_difference))
+
+    # absolute_distance1 = sum(np.absolute(yn1-yn2))
+    # print('Absolute difference: {}'.format(absolute_distance1))
+    # absolute_distance2 = sum(np.absolute(yn1-yn1))
+
+    # S1 = librosa.feature.melspectrogram(y=y1, sr=sr1, n_mels=128, fmax=8000)
+    mfcc1 =  mfcc(y1,sr1, numcep=20)
+    # mfcc1 = librosa.feature.mfcc(y=y1,sr=sr1, S=librosa.power_to_db(S1))
+    d_mfcc_feat1 = delta(mfcc1, 2)
+    # fbank_feat = logfbank(y1,sr1)
+
+    mfcc2 =  mfcc(y2,sr2, numcep=20)
+    # S2 = librosa.feature.melspectrogram(y=y2, sr=sr2, n_mels=128, fmax=8000)
+    # mfcc2 = librosa.feature.mfcc(y=y2,sr=sr2, S=librosa.power_to_db(S2))
+    d_mfcc_feat2 = delta(mfcc2, 2)
+    # fbank_feat2 = logfbank(y2,sr2)
+
+    # plt.subplot(221)
+    # librosa.display.specshow(mfcc1)
+    # plt.subplot(223)
+    # librosa.display.specshow(mfcc2)
+    # plt.show()
+
+    # distance1 = sum(sum(np.absolute(mfcc1 - mfcc2)))
+    # distance2 = sum(sum(np.absolute(mfcc2 - mfcc2)))
+    # print('Absolute difference mfcc: {}'.format(distance1))
+
+    dtw_dist = dtw(d_mfcc_feat1, d_mfcc_feat2)
+    print('dtw distance mfcc: {}'.format(dtw_dist))
+
+    # librosa.display.specshow(mfcc1)
+    # librosa.display.specshow(mfcc2)
+    # plt.show()
 
 # # read in signal, take absolute value and slice seconds 1-3 from beginning
 # def get_two_secs(filename):
@@ -65,12 +123,18 @@ def plot_spec(file_path):
 #     ma_vec = (cumsum_vec[window_width:] - cumsum_vec[:-window_width])/float(window_width)
 #     return ma_vec
 
-# # change total number of samps for downsampled file to n_samps by trimming or zero-padding and standardize them
-# def make_standard_length(filename, n_samps=240000):
-#     down_sig, rate = downsample(filename)
-#     normed_sig = librosa.util.fix_length(down_sig, n_samps)
-#     normed_sig = (normed_sig - np.mean(normed_sig))/np.std(normed_sig))
-#     return normed_sig
+# change total number of samps for downsampled file to n_samps by trimming or zero-padding and standardize them
+def normalize(y1, y2):
+    # normalize duration
+    # time_ratio = librosa.get_duration(y1) / librosa.get_duration(y2)
+    # y1 = librosa.effects.time_stretch(y1,time_ratio)
+    # y1 = librosa.util.fix_length(y1, len(y2))
+
+    # normalize volume
+    y1 = librosa.util.normalize(y1)
+    y2 = librosa.util.normalize(y2)
+
+    return y1, y2
 
 # # from a folder containing wav files, normalize each, divide into num_splits-1 chunks and write the resulting np.arrays to a single matrix
 # def make_split_audio_array(folder, num_splits = 5):
