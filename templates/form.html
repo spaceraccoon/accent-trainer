@@ -1,5 +1,5 @@
 {% extends "main.html" %}
-{% block title %}Create Item{% endblock %}
+{% block title %}Home{% endblock %}
 {% block head %}
   {{ super() }}
   <link rel=stylesheet type=text/css href="{{ url_for('static', filename='form.css') }}">
@@ -61,7 +61,11 @@
                 text = document.getElementById('text'),
                 player = document.getElementById('player'),
                 submit = document.getElementById('submit'),
+                file = document.getElementById('file'),
+                upload = document.getElementById('upload'),
                 supportedFormats = getSupportedAudioFormats(player);
+
+            player.play();
 
             // Display a message and don't allow submitting the form if the
             // browser doesn't support any of the available audio formats
@@ -72,81 +76,125 @@
                       ' one.');
             }
 
-            // Play the audio stream when the form is submitted successfully
-            input.addEventListener('submit', function (event) {
-                // Validate the fields in the form, display a message if
-                // unexpected values are encountered
-                if (voiceMenu.selectedIndex <= 0 || text.value.length === 0) {
-                    alert('Please fill in all the fields.');
-                } else {
-                    var selectedVoice = voiceMenu
-                                            .options[voiceMenu.selectedIndex]
-                                            .value;
+            if($('#text').val()) {
+                $('#test_text').val($('#text').val());
+            }
 
-                    // Point the player to the streaming server
-                    player.src = '/read?voiceId=' +
-                        encodeURIComponent(selectedVoice) +
-                        '&text=' + encodeURIComponent(text.value) +
-                        '&outputFormat=' + supportedFormats[0];
-                    player.play();
-                }
+            if($('#test_text').val()) {
+                $('#text').val($('#test_text').val());
+            }
 
-                // Stop the form from submitting,
-                // Submitting the form is allowed only if the browser doesn't
-                // support Javascript to ensure functionality in such a case
-                event.preventDefault();
+            if($('#voiceId').val() != 'Joanna') {
+                $('#test_voiceId').val($('#voiceId').val());
+            }
+
+            if($('#test_voiceId').val() != 'Joanna') {
+                $('#voiceId').val($('#test_voiceId').val());
+            }
+
+            $('#text').bind('keypress keyup blur', function() {
+                $('#test_text').val($(this).val());
             });
 
-            // Load the list of available voices and display them in a menu
-            fetchJSON('POST', '/voices',
-                // If the request succeeds
-                function (voices) {
-                    var container = document.createDocumentFragment();
+            $('#test_text').bind('keypress keyup blur', function() {
+                $('#text').val($(this).val());
+            });
 
-                    // Build the list of options for the menu
-                    voices.forEach(function (voice) {
-                        var option = document.createElement('option');
-                        option.value = voice['Id'];
-                        option.innerHTML = voice['Name'] + ' (' +
-                            voice['Gender'] + ', ' +
-                            voice['LanguageName'] + ')';
-                        container.appendChild(option);
-                    });
+            $('#voiceId').bind('change', function() {
+                $('#test_voiceId').val($(this).val());
+            });
 
-                    // Add the options to the menu and enable the form field
-                    voiceMenu.appendChild(container);
-                    voiceMenu.disabled = false;
-                },
-                // If the request fails
-                function (status, response) {
-                    // Display a message in case loading data from the server
-                    // fails
-                    alert(status + ' - ' + response);
-                });
+            $('#test_voiceId').bind('change', function() {
+                $('#voiceId').val($(this).val());
+            });
         });
+
+        
     </script>
 
 {% endblock %}
 {% block content %}
     <div class="container">
-      <div class="form">
-        <h1 class="page-header">Create Item</h1>
-        <form id="input" method="GET" action="/read">
-            <div>
-                <label for="voice">Select a voice:</label>
-                <select id="voice" name="voiceId" disabled>
-                    <option value="">Choose a voice...</option>
-                </select>
+        <div class="row">
+            <div class="col-md-6">
+                <h1 class="page-header">Model Example</h1>
+                <audio id="player" {% if audio_src %}src="{{ audio_src }}"{% endif%} controls></audio>
+                <div class="form">
+                    <form class="form-horizontal" method="POST" action="/">
+                        {{ polly_form.csrf_token }}
+                        <div class="form-group {% if polly_form.voiceId.errors %} has-error {% endif %}">
+                            {{ polly_form.voiceId.label(class="col-sm-2") }}
+                        <div class="col-sm-7">
+                            {{ polly_form.voiceId(class="form-control") }}
+                        </div>
+                        <p class="col-sm-3 help-block">
+                            {{ polly_form.voiceId.errors[0] }}
+                        </div>
+                        <div class="form-group {% if polly_form.text.errors %} has-error {% endif %}">
+                            {{ polly_form.text.label(class="col-sm-2")}}
+                        <div class="col-sm-7">
+                            {{ polly_form.text(placeholder="Type the text you want to practice here...", class="form-control", rows="3") }}
+                        </div>
+                        <p class="col-sm-3 help-block">
+                            {{ polly_form.text.errors[0] }}
+                        </div>
+                        <input type="submit" value="Submit" class="btn btn-primary">
+                    </form>
+                </div>
             </div>
-            <div>
-                <label for="text">Text to read:</label>
-                <textarea id="text" maxlength="1000" minlength="1" name="text"
-                        placeholder="Type some text here..."></textarea>
+            <div class="col-md-6">
+                <h1 class="page-header">Test Yourself</h1>
+                <div class="form">
+                    <form enctype="multipart/form-data" class="form-horizontal" id="upload-form" method="POST" action="/test">
+                        {{ test_form.csrf_token }}
+                        <div class="form-group {% if test_form.test_voiceId.errors %} has-error {% endif %}">
+                            {{ test_form.test_voiceId.label(class="col-sm-2") }}
+                        <div class="col-sm-7">
+                            {{ test_form.test_voiceId(class="form-control") }}
+                        </div>
+                        <p class="col-sm-3 help-block">
+                            {{ test_form.test_voiceId.errors[0] }}
+                        </div>
+                        <div class="form-group {% if test_form.test_text.errors %} has-error {% endif %}">
+                            {{ test_form.test_text.label(class="col-sm-2")}}
+                        <div class="col-sm-7">
+                            {{ test_form.test_text(placeholder="Type the text you want to practice here...", class="form-control", rows="3") }}
+                        </div>
+                        <p class="col-sm-3 help-block">
+                            {{ test_form.test_text.errors[0] }}
+                        </div>
+                        <div class="form-group {% if test_form.file.errors %} has-error {% endif %}">
+                            {{ test_form.file.label(class="col-sm-2") }}
+                        <div class="col-sm-7">
+                            {{ test_form.file }}
+                        </div>
+                        <p class="col-sm-3 help-block">
+                            {{ test_form.file.errors[0] }}
+                        </div>
+                        {% if results %}
+                            <div class="form-group">
+                                <label class="col-sm-2">Results</label>
+                                <div class="col-sm-10">
+                                    <p>
+                                        Speed: {{ results['speed'] }}%
+                                    </p>
+                                    <p>
+                                        Voice: {{ results['voice'] }}%
+                                    </p>
+                                    <p>
+                                        Accuracy: {{ results['accuracy'] }}%
+                                    </p>
+                                    <p>
+                                        Grade: {{ results['grade'] }}
+                                    </p>                                 
+                                </div>
+                            </div>
+                        {% endif %}
+                        <input type="submit" value="Upload" class="btn btn-primary">
+                    </form>
+                </div>
             </div>
-            <input type="submit" value="Read" id="submit" />
-        </form>
-        <audio id="player"></audio>
-      </div>
+        </div>
     </div>
 {% endblock %}
 
