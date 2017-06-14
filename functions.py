@@ -60,11 +60,11 @@ def compute_dist(y1, r1, y2, r2, file_path, text):
                                   librosa.get_duration(y2))
     print('Time difference: {}'.format(time_difference))
 
-    mfcc1 = mfcc(y1, r1, numcep=20)
+    mfcc1 = mfcc(y1, r1)
     d_mfcc_feat1 = delta(mfcc1, 2)
     # fbank_feat = logfbank(y1,r1)
 
-    mfcc2 = mfcc(y2, r2, numcep=20)
+    mfcc2 = mfcc(y2, r2)
     d_mfcc_feat2 = delta(mfcc2, 2)
     # fbank_feat2 = logfbank(y2,r2)
 
