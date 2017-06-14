@@ -11,31 +11,33 @@ import soundfile as sf
 import speech_recognition as sr
 import string
 
-BING_KEY = "INSERT BING KEY"
+BING_KEY = "INSERT BING KEY HERE"
 CONVERT_FOLDER = 'converted/'
-r = sr.Recognizer()
+recognizer = sr.Recognizer()
 
 
 # Need to transpose and resample soundfile for processing with librosa
-def resample_for_librosa(d, sr):
+def resample_for_librosa(d, r):
     d = d.T
-    d = librosa.resample(d, sr, 22050)
-    sr = 22050
-    return d, sr
+    d = librosa.resample(d, r, 44100)
+    sr = 44100
+    return d, r
 
 
 # Save using sf instead of librosa to match pcm subtype for bing
-def save_as_wav(d, sr, filename):
+def save_as_wav(d, r, filename):
     x = ''.join(random.choice(string.ascii_uppercase + string.ascii_lowercase +
                               string.digits) for _ in range(24))
     new_path = '{}{}_{}.wav'.format(CONVERT_FOLDER, x, filename)
-    sf.write(new_path, d, sr, subtype='PCM_24')
+    d = d.T
+    # librosa.output.write_wav(new_path, d, r)
+    sf.write(new_path, d, r, 'PCM_24')
     return new_path
 
 
-def process_audio(y, sr):
+def process_audio(d, r):
     # Trim silence at start and end
-    yt, index = librosa.effects.trim(y, 15)
+    dt, index = librosa.effects.trim(d, 15)
 
     # Apply pre-emphasis filter_audio
     # pre_emphasis = 0.97
@@ -43,12 +45,12 @@ def process_audio(y, sr):
 
     # Apply butterworth bandpass filter
     b, a = butter(4, [0.05, 0.8], 'bandpass')
-    yf = lfilter(b, a, yt)
+    df = lfilter(b, a, dt)
 
-    return yt, sr
+    return dt, r
 
 
-def compute_dist(y1, sr1, y2, sr2, file_path, text):
+def compute_dist(y1, r1, y2, r2, file_path, text):
 
     # normalize clips
     yn1, yn2 = normalize(y1, y2)
@@ -57,22 +59,22 @@ def compute_dist(y1, sr1, y2, sr2, file_path, text):
                                   librosa.get_duration(y2))
     print('Time difference: {}'.format(time_difference))
 
-    mfcc1 = mfcc(y1, sr1, numcep=20)
+    mfcc1 = mfcc(y1, r1, numcep=20)
     d_mfcc_feat1 = delta(mfcc1, 2)
-    # fbank_feat = logfbank(y1,sr1)
+    # fbank_feat = logfbank(y1,r1)
 
-    mfcc2 = mfcc(y2, sr2, numcep=20)
+    mfcc2 = mfcc(y2, r2, numcep=20)
     d_mfcc_feat2 = delta(mfcc2, 2)
-    # fbank_feat2 = logfbank(y2,sr2)
+    # fbank_feat2 = logfbank(y2,r2)
 
     dtw_dist = dtw(d_mfcc_feat1, d_mfcc_feat2)
     print('dtw distance mfcc: {}'.format(dtw_dist))
 
     with sr.AudioFile(file_path) as source:
-        audio = r.record(source)  # read the entire audio file
+        audio = recognizer.record(source)  # read the entire audio file
 
     try:
-        recognized_text = r.recognize_bing(audio, key=BING_KEY)
+        recognized_text = recognizer.recognize_bing(audio, key=BING_KEY)
         print(recognized_text)
         translator = str.maketrans('', '', string.punctuation)
         text = text.translate(translator).lower()

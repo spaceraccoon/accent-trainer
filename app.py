@@ -1,7 +1,8 @@
 from boto3 import Session
 from botocore.exceptions import BotoCoreError, ClientError
 from contextlib import closing
-from flask import Flask, jsonify, render_template, request, Response, send_file
+from flask import Flask, jsonify, redirect, render_template, request,\
+    Response, send_file
 from functions import compute_dist, process_audio, resample_for_librosa,\
     save_as_wav
 from models import PollyForm, TestForm
@@ -110,77 +111,80 @@ def read():
         raise InvalidUsage("Wrong parameters", status_code=400)
 
 
-@app.route('/test', methods=['POST'])
+@app.route('/test', methods=['GET','POST'])
 def compare():
     polly_form = PollyForm()
     test_form = TestForm()
-    if test_form.validate_on_submit():
-        text = test_form.test_text.data
-        voiceId = test_form.test_voiceId.data
-        file = test_form.file.data
-        filename = os.path.splitext(secure_filename(file.filename))[0]
-        try:
-            # Request speech synthesis
-            response = polly.synthesize_speech(Text=text,
-                                               VoiceId=voiceId,
-                                               OutputFormat="ogg_vorbis")
-        except (BotoCoreError, ClientError) as err:
-            # The service returned an error
-            raise InvalidUsage(str(err), status_code=500)
+    results = None
+    if request.method == 'POST':
+        if test_form.validate_on_submit():
+            text = test_form.test_text.data
+            voiceId = test_form.test_voiceId.data
+            file = test_form.file.data
+            filename = os.path.splitext(secure_filename(file.filename))[0]
+            try:
+                # Request speech synthesis
+                response = polly.synthesize_speech(Text=text,
+                                                   VoiceId=voiceId,
+                                                   OutputFormat="ogg_vorbis")
+            except (BotoCoreError, ClientError) as err:
+                # The service returned an error
+                raise InvalidUsage(str(err), status_code=500)
 
-        tmp = io.BytesIO(file.read())
-        d1, sr1 = sf.read(tmp, dtype='float32')
-        d1, sr1 = resample_for_librosa(d1, sr1)
-        file_path = save_as_wav(d1, sr1, filename)
-        d1, sr1 = process_audio(d1, sr1)
+            tmp = io.BytesIO(file.read())
+            d1, r1 = sf.read(tmp, dtype='float32')
+            d1, r1 = resample_for_librosa(d1, r1)
+            file_path = save_as_wav(d1, r1, filename)
+            d1, r1 = process_audio(d1, r1)
 
-        # Access the audio stream from the response
-        output = None
-        if "AudioStream" in response:
-            with closing(response["AudioStream"]) as stream:
-                try:
-                    tmp = io.BytesIO(stream.read())
-                except IOError as error:
-                    # Could not write to file, fail gracefully
-                    raise InvalidUsage(error, status_code=400)
-        else:
-            # The response didn't contain audio data, fail gracefully
-            raise InvalidUsage("Could not stream audio", status_code=400)
+            # Access the audio stream from the response
+            output = None
+            if "AudioStream" in response:
+                with closing(response["AudioStream"]) as stream:
+                    try:
+                        tmp = io.BytesIO(stream.read())
+                    except IOError as error:
+                        # Could not write to file, fail gracefully
+                        raise InvalidUsage(error, status_code=400)
+            else:
+                # The response didn't contain audio data, fail gracefully
+                raise InvalidUsage("Could not stream audio", status_code=400)
 
-        d2, sr2 = sf.read(tmp, dtype='float32')
-        d2, sr2 = resample_for_librosa(d2, sr2)
-        d2, sr2 = process_audio(d2, sr2)
+            d2, r2 = sf.read(tmp, dtype='float32')
+            d2, r2 = resample_for_librosa(d2, r2)
+            d2, r2 = process_audio(d2, r2)
 
-        time_difference, dtw_dist, accuracy = compute_dist(d1, sr1, d2, sr2,
-                                                           file_path, text)
+            time_difference, dtw_dist, accuracy = compute_dist(d1, r1, d2, r2,
+                                                               file_path, text)
 
-        speed = max((60 - time_difference) / 60 * 100, 0)
-        voice = max((1000 - dtw_dist) / 1000 * 100, 0)
-        accuracy = accuracy * 100
-        average = np.mean([speed, voice, accuracy])
+            speed = max((60 - time_difference) / 60 * 100, 0)
+            voice = max((1000 - dtw_dist) / 1000 * 100, 0)
+            accuracy = accuracy * 100
+            average = np.mean([speed, voice, accuracy])
 
-        if average >= 90:
-            grade = 'A'
-        elif average >= 75:
-            grade = 'B'
-        elif average >= 60:
-            grade = 'C'
-        elif average >= 40:
-            grade = 'D'
-        elif average >= 20:
-            grade = 'E'
-        else:
-            grade = 'F'
+            if average >= 90:
+                grade = 'A'
+            elif average >= 75:
+                grade = 'B'
+            elif average >= 60:
+                grade = 'C'
+            elif average >= 40:
+                grade = 'D'
+            elif average >= 20:
+                grade = 'E'
+            else:
+                grade = 'F'
 
-        results = {
-                    'speed': str(round(speed, 2)),
-                    'voice': str(round(voice, 2)),
-                    'accuracy': str(round(accuracy, 2)),
-                    'grade': grade
-                  }
+            results = {
+                        'speed': str(round(speed, 2)),
+                        'voice': str(round(voice, 2)),
+                        'accuracy': str(round(accuracy, 2)),
+                        'grade': grade
+                      }
 
     return render_template('form.html', polly_form=polly_form,
-                           test_form=test_form, audio_src=None, results=None)
+                           test_form=test_form, audio_src=None,
+                           results=results)
 
 
 @app.route('/test/JSON', methods=['POST'])
@@ -202,10 +206,10 @@ def compare_json():
             raise InvalidUsage(str(err), status_code=500)
 
         tmp = io.BytesIO(file.read())
-        d1, sr1 = sf.read(tmp, dtype='float32')
-        d1, sr1 = resample_for_librosa(d1, sr1)
-        file_path = save_as_wav(d1, sr1, filename)
-        d1, sr1 = process_audio(d1, sr1)
+        d1, r1 = sf.read(tmp, dtype='float32')
+        d1, r1 = resample_for_librosa(d1, r1)
+        file_path = save_as_wav(d1, r1, filename)
+        d1, r1 = process_audio(d1, r1)
 
         # Access the audio stream from the response
         output = None
@@ -220,11 +224,11 @@ def compare_json():
             # The response didn't contain audio data, exit gracefully
             raise InvalidUsage("Could not stream audio", status_code=400)
 
-        d2, sr2 = sf.read(tmp, dtype='float32')
-        d2, sr2 = resample_for_librosa(d2, sr2)
-        d2, sr2 = process_audio(d2, sr2)
+        d2, r2 = sf.read(tmp, dtype='float32')
+        d2, r2 = resample_for_librosa(d2, r2)
+        d2, r2 = process_audio(d2, r2)
 
-        time_difference, dtw_dist, accuracy = compute_dist(d1, sr1, d2, sr2,
+        time_difference, dtw_dist, accuracy = compute_dist(d1, r1, d2, r2,
                                                            file_path, text)
 
         speed = max((60 - time_difference) / 60 * 100, 0)

@@ -84,6 +84,6 @@ class TestForm(FlaskForm):
                             validators=[DataRequired(), Length(max=500)])
     file = FileField('Upload', validators=[
                                            FileRequired(),
-                                           FileAllowed(['wav'],
-                                                       'WAV recordings only!')
+                                           FileAllowed(['wav','ogg'],
+                                                       'WAV or OGG required.')
                                           ])
