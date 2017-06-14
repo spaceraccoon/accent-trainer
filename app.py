@@ -5,7 +5,7 @@ from flask import Flask, jsonify, redirect, render_template, request,\
     Response, send_file
 from functions import compute_dist, process_audio, resample_for_librosa,\
     save_as_wav
-from models import PollyForm, TestForm
+from models import InvalidUsage, PollyForm, TestForm
 from werkzeug.utils import secure_filename
 import io
 import numpy as np
@@ -35,22 +35,6 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 # section of the AWS credentials and configuration files
 session = Session(profile_name="default")
 polly = session.client("polly")
-
-
-class InvalidUsage(Exception):
-    status_code = 400
-
-    def __init__(self, message, status_code=None, payload=None):
-        Exception.__init__(self)
-        self.message = message
-        if status_code is not None:
-            self.status_code = status_code
-        self.payload = payload
-
-    def to_dict(self):
-        rv = dict(self.payload or ())
-        rv['message'] = self.message
-        return rv
 
 
 @app.errorhandler(InvalidUsage)

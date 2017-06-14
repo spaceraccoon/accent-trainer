@@ -1,17 +1,18 @@
 from cydtw import dtw
 from difflib import SequenceMatcher
+from models import InvalidUsage
+from python_speech_features import mfcc, delta, logfbank
+from scipy.signal import butter, lfilter
 import librosa
 import librosa.display
 import numpy as np
 import os
-from python_speech_features import mfcc, delta, logfbank
 import random
-from scipy.signal import butter, lfilter
 import soundfile as sf
 import speech_recognition as sr
 import string
 
-BING_KEY = "INSERT BING KEY HERE"
+BING_KEY = "INSERT KEY HERE"
 CONVERT_FOLDER = 'converted/'
 recognizer = sr.Recognizer()
 
@@ -83,8 +84,8 @@ def compute_dist(y1, r1, y2, r2, file_path, text):
         print("Microsoft Bing Voice Recognition could not understand audio")
         accuracy = 0.0
     except sr.RequestError as e:
-        print("Could not request results from Microsoft Bing Voice Recognition\
-              service; {0}".format(e))
+        raise InvalidUsage("Could not get results from Bing: {0}".format(e),
+                           status_code=400)
 
     return time_difference, dtw_dist, accuracy
 
