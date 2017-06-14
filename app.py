@@ -119,9 +119,7 @@ def read():
 def compare():
 	polly_form = PollyForm()
 	test_form = TestForm()
-	print('hmm')
 	if test_form.validate_on_submit():
-		print('yes')
 		text = test_form.test_text.data
 		voiceId = test_form.test_voiceId.data
 		file = test_form.file.data
@@ -189,7 +187,6 @@ def compare():
 
 		return render_template('form.html', polly_form=polly_form, test_form=test_form, audio_src=None, results=results)
 
-	print(test_form.errors)
 	return render_template('form.html', polly_form=polly_form, test_form=test_form, audio_src=None, results=None)
 
 @app.route('/test/JSON', methods=['POST'])
@@ -264,7 +261,7 @@ def compare_json():
 
 		return jsonify(results)
 
-	raise InvalidUsage("Wrong parameters", status_code=400)
+	raise InvalidUsage(test_form.errors, status_code=400)
 
 if __name__ == '__main__':
     app.secret_key = 'super_secret_key'

@@ -11,7 +11,7 @@ from python_speech_features import mfcc, delta, logfbank
 from cydtw import dtw
 from difflib import SequenceMatcher
 
-BING_KEY = "ADD BING HERE"
+BING_KEY = "INSERT BING KEY"
 CONVERT_FOLDER = 'converted/'
 r = sr.Recognizer()
 
