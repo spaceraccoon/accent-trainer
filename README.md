@@ -2,7 +2,7 @@
 Accent Trainer is Flask webapp/endpoint that compares the user's speech with different accents and assigns similarity scores based on speed, voice (DTW/MFCC), and accuracy. The accents are generated from Amazon Polly and accuracy analysis using Bing Speech API speech to text.
 ![screenshot](screenshot.png)
 
-## Installation
+## Install
 1. Install [Anaconda](https://docs.continuum.io/anaconda/install) for Python 3.6. If space is a problem, you can also use pip or Miniconda to install the dependencies.
 2. `git clone` the repository and `cd` into it.
 3. You may then choose to install the rest of the dependencies in a virtual environment or not (as well as the pip or conda method).
@@ -18,8 +18,8 @@ Accent Trainer is Flask webapp/endpoint that compares the user's speech with dif
 6. Write your own secret key in `app.secret_key` in `app.py`
 7. `python app.py`
 
-## Contributing
+## Contribute
 Feel free to post issues and make pull requests.
 
-## Hiring
-This is a skeleton for a more fully developed server-side solution. Feel free to contact me for a private implementation via my [website](https://www.pinewebarchitects.com/).
+## Deploy
+This is a skeleton for a more fully developed server-side solution. Feel free to contact me via my [website](https://www.pinewebarchitects.com/).
