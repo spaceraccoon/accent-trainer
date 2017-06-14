@@ -20,7 +20,7 @@ recognizer = sr.Recognizer()
 def resample_for_librosa(d, r):
     d = d.T
     d = librosa.resample(d, r, 44100)
-    sr = 44100
+    r = 44100
     return d, r
 
 
