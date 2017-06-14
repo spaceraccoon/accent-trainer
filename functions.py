@@ -12,7 +12,7 @@ import soundfile as sf
 import speech_recognition as sr
 import string
 
-BING_KEY = "INSERT KEY HERE"
+BING_KEY = "INSERT BING KEY"
 CONVERT_FOLDER = 'converted/'
 recognizer = sr.Recognizer()
 
@@ -61,14 +61,16 @@ def compute_dist(y1, r1, y2, r2, file_path, text):
     print('Time difference: {}'.format(time_difference))
 
     mfcc1 = mfcc(y1, r1)
-    d_mfcc_feat1 = delta(mfcc1, 2)
+    d_mfcc1 = delta(mfcc1, 2)
+    mfcc_concat1 = np.concatenate((mfcc1, d_mfcc1))
     # fbank_feat = logfbank(y1,r1)
 
     mfcc2 = mfcc(y2, r2)
-    d_mfcc_feat2 = delta(mfcc2, 2)
+    d_mfcc2 = delta(mfcc2, 2)
+    mfcc_concat2 = np.concatenate((mfcc2, d_mfcc2))
     # fbank_feat2 = logfbank(y2,r2)
 
-    dtw_dist = dtw(d_mfcc_feat1, d_mfcc_feat2)
+    dtw_dist = dtw(mfcc_concat1, mfcc_concat2)
     print('dtw distance mfcc: {}'.format(dtw_dist))
 
     with sr.AudioFile(file_path) as source:

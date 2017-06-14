@@ -142,7 +142,7 @@ def compare():
                                                                file_path, text)
 
             speed = max((60 - time_difference) / 60 * 100, 0)
-            voice = max((1000 - dtw_dist) / 1000 * 100, 0)
+            voice = max(min((200 - (dtw_dist - 800)) / 2, 100), 0)
             accuracy = accuracy * 100
             average = np.mean([speed, voice, accuracy])
 
@@ -216,7 +216,7 @@ def compare_json():
                                                            file_path, text)
 
         speed = max((60 - time_difference) / 60 * 100, 0)
-        voice = max((1000 - dtw_dist) / 1000 * 100, 0)
+        voice = max((2000 - dtw_dist) / 2000 * 100, 0)
         accuracy = accuracy * 100
         average = np.mean([speed, voice, accuracy])
 
