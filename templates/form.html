@@ -13,36 +13,6 @@
         };
 
         /**
-         * Handles fetching JSON over HTTP
-         */
-        function fetchJSON(method, url, onSuccess, onError) {
-            var request = new XMLHttpRequest();
-            request.open(method, url, true);
-            request.onload = function () {
-                // If loading is complete
-                if (request.readyState === 4) {
-                    // if the request was successful
-                    if (request.status === 200) {
-                        var data;
-
-                        // Parse the JSON in the response
-                        try {
-                            data = JSON.parse(request.responseText);
-                        } catch (error) {
-                            onError(request.status, error.toString());
-                        }
-
-                        onSuccess(data);
-                    } else {
-                        onError(request.status, request.responseText)
-                    }
-                }
-            };
-
-            request.send();
-        }
-
-        /**
          * Returns a list of audio formats supported by the browser
          */
         function getSupportedAudioFormats(player) {
@@ -55,17 +25,11 @@
 
         // Initialize the application when the DOM is loaded and ready to be
         // manipulated
-        document.addEventListener("DOMContentLoaded", function () {
-            var input = document.getElementById('input'),
-                voiceMenu = document.getElementById('voice'),
-                text = document.getElementById('text'),
-                player = document.getElementById('player'),
-                submit = document.getElementById('submit'),
-                file = document.getElementById('file'),
-                upload = document.getElementById('upload'),
-                supportedFormats = getSupportedAudioFormats(player);
-
-            player.play();
+        $( document ).ready(function() {
+            var player = document.getElementById("player")
+            var supportedFormats = getSupportedAudioFormats(player);
+            $('#output_format').val(supportedFormats[0]);
+            player.play()   // Plays Polly output on reload after submit
 
             // Display a message and don't allow submitting the form if the
             // browser doesn't support any of the available audio formats
@@ -76,6 +40,11 @@
                       ' one.');
             }
 
+            $('#upload').click(function() {
+                $('#upload').prop('disabled', true);
+            })
+
+            // Needs refactoring
             if($('#text').val()) {
                 $('#test_text').val($('#text').val());
             }
@@ -108,8 +77,6 @@
                 $('#voiceId').val($(this).val());
             });
         });
-
-        
     </script>
 
 {% endblock %}
@@ -138,6 +105,7 @@
                         <p class="col-sm-3 help-block">
                             {{ polly_form.text.errors[0] }}
                         </div>
+                        {{ polly_form.output_format }}
                         <input type="submit" value="Submit" class="btn btn-primary">
                     </form>
                 </div>
@@ -190,7 +158,7 @@
                                 </div>
                             </div>
                         {% endif %}
-                        <input type="submit" value="Upload" class="btn btn-primary">
+                        <input type="submit" id="upload" value="Upload" class="btn btn-primary">
                     </form>
                 </div>
             </div>
