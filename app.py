@@ -13,15 +13,6 @@ import os
 import soundfile as sf
 import sys
 
-if sys.version_info >= (3, 0):
-    from http.server import BaseHTTPRequestHandler, HTTPServer
-    from socketserver import ThreadingMixIn
-    from urllib.parse import parse_qs
-else:
-    from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
-    from SocketServer import ThreadingMixIn
-    from urlparse import parse_qs
-
 # Mapping the output format used in the client to the content type for the
 # response
 AUDIO_FORMATS = {"ogg_vorbis": "audio/ogg",
@@ -246,6 +237,6 @@ def compare_json():
 
 
 if __name__ == '__main__':
-    app.secret_key = 'super_secret_key'
+    app.secret_key = os.urandom(24)
     app.debug = True
     app.run(host='0.0.0.0', port=8000)
