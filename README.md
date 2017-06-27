@@ -15,7 +15,6 @@ The distance results were compared against a model (i.e. same Polly voice and te
     4. `pip install python_speech_features`
     5. `pip install cydtw`
     6. `pip install Flask-WTF`
-    5. `pip install Flask-WTF`
 4. Register for Amazon Web Services, [install](http://docs.aws.amazon.com/cli/latest/userguide/installing.html) the CLI and [configure](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html) it. You might also need to `pip install boto3`.
 5. Register for Microsoft Azure and get a Bing Speech API key. Insert it into `BING_KEY` in `functions.py`.
 6. Write your own secret key in `app.secret_key` in `app.py`
